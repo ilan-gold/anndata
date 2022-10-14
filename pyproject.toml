@@ -46,6 +46,7 @@ dependencies = [
     "h5py>=3",
     "natsort",
     "packaging>=20",
+    "dask>=2022.9.2"
 ]
 dynamic = ["version"]
 
