@@ -1,15 +1,14 @@
 import copy
+from  typing import List, Tuple
 
 import dask.dataframe as dd
-import dask.array as da
 
-import dask
 from dask.base import tokenize
 from dask.dataframe.io.io import from_map
 
-import pandas as pd, numpy as np, zarr
+import pandas as pd
+import zarr
 
-from anndata.experimental import read_elem, write_elem
 from anndata._io.specs.methods import read_elem_partial
 
 
@@ -20,7 +19,7 @@ class AnnDataDFIOFunction(dd.io.utils.DataFrameIOFunction):
         self.group = group
         
     @property
-    def columns(self) -> list[str]:
+    def columns(self) -> List[str]:
         return self._columns
     
     def project_columns(self, columns):
@@ -33,7 +32,7 @@ class AnnDataDFIOFunction(dd.io.utils.DataFrameIOFunction):
         func._columns = columns
         return func
     
-    def __call__(self, parts: list[tuple[int, int]]) -> pd.DataFrame:
+    def __call__(self, parts: List[Tuple[int, int]]) -> pd.DataFrame:
         """Parts is a tuple of chunk indices"""
         df = pd.DataFrame({
             k: read_elem_partial(self.group[k], indices=slice(parts[0], parts[1]))
@@ -70,7 +69,6 @@ def read_df_schema(group: zarr.Group) -> pd.DataFrame:
             meta[k] = str(group[k].dtype)
     df = pd.DataFrame({k: pd.Series([], dtype=meta[k]) for k in columns})
     df.set_index(index_col, inplace=True)
-
     return df
 
 def read_anndata_df(group: zarr.Group) -> dd.DataFrame:
@@ -89,6 +87,6 @@ def read_anndata_df(group: zarr.Group) -> dd.DataFrame:
         meta=meta, # Empty dataframe with dtypes
         divisions=None, # iterable of points along index where partitions occur
         label="read-anndata",
-        token=tokenize(group.path, group.store.path),
+        token=tokenize(group.path),
         enforce_metadata=False,
     )

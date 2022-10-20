@@ -281,6 +281,7 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         varp: Optional[Union[np.ndarray, Mapping[str, Sequence[Any]]]] = None,
         oidx: Index1D = None,
         vidx: Index1D = None,
+        parse_df: bool = True
     ):
         if asview:
             if not isinstance(X, AnnData):
@@ -302,6 +303,7 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
                 varp=varp,
                 filename=filename,
                 filemode=filemode,
+                parse_df=parse_df,
             )
 
     def _init_as_view(self, adata_ref: "AnnData", oidx: Index, vidx: Index):
@@ -381,6 +383,7 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         shape=None,
         filename=None,
         filemode=None,
+        parse_df=True
     ):
         # view attributes
         self._is_view = False
@@ -493,8 +496,12 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
                         raise ValueError("`shape` is inconsistent with `var`")
 
         # annotations
-        self._obs = _gen_dataframe(obs, self._n_obs, ["obs_names", "row_names"])
-        self._var = _gen_dataframe(var, self._n_vars, ["var_names", "col_names"])
+        if parse_df:
+            self._obs = _gen_dataframe(obs, self._n_obs, ["obs_names", "row_names"])
+            self._var = _gen_dataframe(var, self._n_vars, ["var_names", "col_names"])
+        else:
+            self._obs = obs
+            self._var = var
 
         # now we can verify if indices match!
         for attr_name, x_name, idx in x_indices:
@@ -578,7 +585,11 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
             "obsp",
             "varp",
         ]:
-            keys = getattr(self, attr).keys()
+            attr = getattr(self, attr)
+            if getattr(attr, "keys", None):
+                keys = attr.keys()
+            else:
+                keys = attr.columns
             if len(keys) > 0:
                 descr += f"\n    {attr}: {str(list(keys))[1:-1]}"
         return descr
@@ -1823,10 +1834,11 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
     obs_names_make_unique.__doc__ = utils.make_index_unique.__doc__
 
     def _check_uniqueness(self):
-        if not self.obs.index.is_unique:
-            utils.warn_names_duplicates("obs")
-        if not self.var.index.is_unique:
-            utils.warn_names_duplicates("var")
+        # if not self.obs.index.is_unique:
+        #     utils.warn_names_duplicates("obs")
+        # if not self.var.index.is_unique:
+        #     utils.warn_names_duplicates("var")
+        pass
 
     def __contains__(self, key: Any):
         raise AttributeError(
