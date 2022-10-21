@@ -276,12 +276,12 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         filename: Optional[PathLike] = None,
         filemode: Optional[Literal["r", "r+"]] = None,
         asview: bool = False,
+        parse_df: bool = True,
         *,
         obsp: Optional[Union[np.ndarray, Mapping[str, Sequence[Any]]]] = None,
         varp: Optional[Union[np.ndarray, Mapping[str, Sequence[Any]]]] = None,
         oidx: Index1D = None,
         vidx: Index1D = None,
-        parse_df: bool = True
     ):
         if asview:
             if not isinstance(X, AnnData):
