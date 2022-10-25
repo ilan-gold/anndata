@@ -52,7 +52,10 @@ def read_df_schema(group: zarr.Group) -> pd.DataFrame:
     columns = group.attrs["column-order"] + [index_col]
     meta = {}
     for k in columns:
-        encoding_type = group[k].attrs["encoding-type"]
+        if "encoding-type" in group[k].attrs:
+            encoding_type = group[k].attrs["encoding-type"]
+        elif "categories" in group[k].attrs:
+            encoding_type = group[k].attrs["categories"]
         if encoding_type == "categorical":
 
             meta[k] = pd.CategoricalDtype(
