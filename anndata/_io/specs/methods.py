@@ -319,6 +319,11 @@ def read_array(elem):
 def read_array_partial(elem, *, items=None, indices=(slice(None, None))):
     return elem[indices]
 
+@_REGISTRY.register_read_partial(ZarrArray, IOSpec("", ""))
+@_REGISTRY.register_read_partial(ZarrArray, IOSpec("", ""))
+def read_array_partial(elem, *, items=None, indices=(slice(None, None))):
+    return elem[indices]
+
 
 # arrays of strings
 @_REGISTRY.register_read(H5Array, IOSpec("string-array", "0.2.0"))

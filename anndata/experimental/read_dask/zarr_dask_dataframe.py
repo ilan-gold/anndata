@@ -9,8 +9,8 @@ from dask.dataframe.io.io import from_map
 import pandas as pd
 import zarr
 
-from anndata._io.specs.methods import read_elem_partial
-
+from ..._io.specs.methods import read_elem_partial
+from ..._io.zarr import read_dataframe_legacy
 
 class AnnDataDFIOFunction(dd.io.utils.DataFrameIOFunction):
     def __init__(self, group: zarr.Group):
@@ -34,6 +34,14 @@ class AnnDataDFIOFunction(dd.io.utils.DataFrameIOFunction):
     
     def __call__(self, parts: List[Tuple[int, int]]) -> pd.DataFrame:
         """Parts is a tuple of chunk indices"""
+        # data = {}
+        # for k in [self.index_col] + self.columns:
+        #     if not isinstance(self.group[k], zarr.Array):
+        #         data[k] = read_elem_partial(self.group[k], indices=slice(parts[0], parts[1]))
+        #     else:
+        #         data[k] = read_dataframe_legacy(self.group[k])
+        # df = pd.DataFrame(data)
+
         df = pd.DataFrame({
             k: read_elem_partial(self.group[k], indices=slice(parts[0], parts[1]))
             for k in [self.index_col] + self.columns
