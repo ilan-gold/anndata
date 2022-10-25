@@ -7,6 +7,7 @@ import zarr
 import dask.array as da
 
 from ..._core.anndata import AnnData
+from ..._core.sparse_dataset import SparseDataset
 from ...compat import (
     _clean_uns,
 )
@@ -30,13 +31,17 @@ def read_zarr_dask(store: Union[str, Path, MutableMapping, zarr.Group]) -> AnnDa
         store = str(store)
 
     f = zarr.open_consolidated(store, mode="r")
-
     # Backwards compat
     def dispatch_element(read_func, group, k, iospec):
-        if k in {"obs", "var"}:
+        if k in ["obs", "var"]:
             return read_dataframe(group[k])
-        if iospec == IOSpec("array", "0.2.0"):
-            return da.from_zarr(group)
+        if iospec == IOSpec("csr_matrix", "0.1.0") or iospec == IOSpec("csc_matrix", "0.1.0"):
+            mtx = SparseDataset(group[k]).to_backed()
+            mtx.data = da.from_zarr(mtx.data)
+            mtx.indices = da.from_zarr(mtx.indices)
+            return mtx
+        if k == "raw":
+            return None
         return read_func(group[k])
 
     def dispatch_anndata_args(group, args):
