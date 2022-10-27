@@ -41,44 +41,53 @@ class AnnDataDFIOFunction(dd.io.utils.DataFrameIOFunction):
         #     else:
         #         data[k] = read_dataframe_legacy(self.group[k])
         # df = pd.DataFrame(data)
-
         df = pd.DataFrame({
-            k: read_elem_partial(self.group[k], indices=slice(parts[0], parts[1]))
+            k: pd.Series(
+                read_elem_partial(self.group[k], indices=slice(parts[0], parts[1])),
+            )
             for k in [self.index_col] + self.columns
         })
         df.set_index(self.index_col, inplace=True)
-
+        for k in [self.index_col] + self.columns:
+            meta = get_column_meta(self.group, k)
+            if type(meta) == pd.CategoricalDtype:
+                df[k] = df[k].astype('category').map(
+                    { idx: val for idx, val in enumerate(meta.categories) }
+                )
         if df.index.name == "_index":
             df.index.name = None
     
         return df
 
+def get_column_meta(group, k):
+    encoding_type = None
+    if "encoding-type" in group[k].attrs:
+        encoding_type = group[k].attrs["encoding-type"]
+    if encoding_type == "categorical":
+        return pd.CategoricalDtype(
+            categories=group[k]["categories"][:],
+            ordered=group[k].attrs["ordered"]
+        )
+    elif encoding_type == "nullable-integer":
+        dt = str(group[k]["values"].dtype)
+        dt = dt[0].upper() + dt[1:]  # hacky
+        return dt
+    elif encoding_type == "nullable-boolean":
+        return "boolean"
+    elif "categories" in group[k].attrs:
+        category = group[k].attrs["categories"]
+        return pd.CategoricalDtype(
+            categories=group[category][:],
+        )
+    else:
+        return str(group[k].dtype)
+    
 
 def read_df_schema(group: zarr.Group) -> pd.DataFrame:
     """Return empty typed dataframe for anndata formated DF"""
     index_col = group.attrs["_index"]
     columns = group.attrs["column-order"] + [index_col]
-    meta = {}
-    for k in columns:
-        if "encoding-type" in group[k].attrs:
-            encoding_type = group[k].attrs["encoding-type"]
-        elif "categories" in group[k].attrs:
-            encoding_type = group[k].attrs["categories"]
-        if encoding_type == "categorical":
-
-            meta[k] = pd.CategoricalDtype(
-                categories=group[k]["categories"][:],
-                ordered=group[k].attrs["ordered"]
-            )
-        elif encoding_type == "nullable-integer":
-            dt = str(group[k]["values"].dtype)
-            dt = dt[0].upper() + dt[1:]  # hacky
-            meta[k] = dt
-        elif encoding_type == "nullable-boolean":
-            meta[k] = "boolean"
-        else:
-            meta[k] = str(group[k].dtype)
-    df = pd.DataFrame({k: pd.Series([], dtype=meta[k]) for k in columns})
+    df = pd.DataFrame({k: pd.Series([], dtype=get_column_meta(group, k)) for k in columns})
     df.set_index(index_col, inplace=True)
     return df
 
