@@ -74,24 +74,26 @@ def _normalize_index(
     elif isinstance(indexer, str):
         return index.get_loc(indexer)  # int
     elif isinstance(indexer, (Sequence, np.ndarray, pd.Index, spmatrix, np.matrix)):
-        if hasattr(indexer, "shape") and (
-            (indexer.shape == (index.shape[0], 1))
-            or (indexer.shape == (1, index.shape[0]))
-        ):
-            if isinstance(indexer, spmatrix):
-                indexer = indexer.toarray()
-            indexer = np.ravel(indexer)
+        if hasattr(index, "shape") and type(index) in { tuple, list }:
+            if hasattr(indexer, "shape") and (
+                (indexer.shape == (index.shape[0], 1))
+                or (indexer.shape == (1, index.shape[0]))
+            ):
+                if isinstance(indexer, spmatrix):
+                    indexer = indexer.toarray()
+                indexer = np.ravel(indexer)
         if not isinstance(indexer, (np.ndarray, pd.Index)):
             indexer = np.array(indexer)
         if issubclass(indexer.dtype.type, (np.integer, np.floating)):
             return indexer  # Might not work for range indexes
         elif issubclass(indexer.dtype.type, np.bool_):
-            if indexer.shape != index.shape:
-                raise IndexError(
-                    f"Boolean index does not match AnnData’s shape along this "
-                    f"dimension. Boolean index has shape {indexer.shape} while "
-                    f"AnnData index has shape {index.shape}."
-                )
+            if indexer.shape in { tuple, list } and index.shape in { tuple, list }:
+                if indexer.shape != index.shape:
+                    raise IndexError(
+                        f"Boolean index does not match AnnData’s shape along this "
+                        f"dimension. Boolean index has shape {indexer.shape} while "
+                        f"AnnData index has shape {index.shape}."
+                    )
             positions = np.where(indexer)[0]
             return positions  # np.ndarray[int]
         else:  # indexer should be string array
