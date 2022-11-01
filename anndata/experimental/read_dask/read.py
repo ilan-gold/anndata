@@ -35,6 +35,8 @@ def read_zarr_dask(store: Union[str, Path, MutableMapping, zarr.Group]) -> AnnDa
     def dispatch_element(read_func, group, k, iospec):
         if k in ["obs", "var"]:
             return read_dataframe(group[k])
+        if k in ["varm", "obsm"]:
+            return {key: da.from_zarr(val) for key, val in group[k].items()} 
         if iospec == IOSpec("csr_matrix", "0.1.0") or iospec == IOSpec("csc_matrix", "0.1.0"):
             mtx = SparseDataset(group[k]).to_backed()
             mtx.data = da.from_zarr(mtx.data)
