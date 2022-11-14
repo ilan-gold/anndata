@@ -282,11 +282,12 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         varp: Optional[Union[np.ndarray, Mapping[str, Sequence[Any]]]] = None,
         oidx: Index1D = None,
         vidx: Index1D = None,
+        init_X_as_view = True
     ):
         if asview:
             if not isinstance(X, AnnData):
                 raise ValueError("`X` has to be an AnnData object.")
-            self._init_as_view(X, oidx, vidx)
+            self._init_as_view(X, oidx, vidx, init_X_as_view)
         else:
             self._init_as_actual(
                 X=X,
@@ -352,8 +353,8 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         self._obs = DataFrameView(obs_sub, view_args=(self, "obs"))
         self._var = DataFrameView(var_sub, view_args=(self, "var"))
         self._uns = uns_new
-        self._n_obs = len(self.obs)
-        self._n_vars = len(self.var)
+        self._n_obs = len(self.obsm)
+        self._n_vars = len(self.varm)
 
         # set data
         if self.isbacked:
@@ -383,7 +384,7 @@ class AnnData(metaclass=utils.DeprecationMixinMeta):
         shape=None,
         filename=None,
         filemode=None,
-        parse_df=True
+        parse_df=True,
     ):
         # view attributes
         self._is_view = False

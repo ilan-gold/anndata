@@ -58,6 +58,7 @@ def read_zarr_dask(store: Union[str, Path, MutableMapping, zarr.Group]) -> AnnDa
         if isinstance(group["obs"], zarr.Array):
             _clean_uns(args)
         args["parse_df"] = False
+        args["init_X_as_view"] = False
         return args
 
     return read_dispatched(f, dispatch_element, dispatch_anndata_args)
