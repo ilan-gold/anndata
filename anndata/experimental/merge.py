@@ -73,7 +73,7 @@ def _gen_slice_to_append(
     fill_value=None,
 ):
     for ds, ri in zip(datasets, reindexers):
-        backed = ds.to_backed()
+        backed = ds.to_backed() # backed object returns data immediately but ds does not, needed for the `else`
         n_slices = backed.shape[axis] * backed.shape[1 - axis] // max_loaded_elems
         if n_slices < 2:
             yield (csr_matrix, csc_matrix)[axis](

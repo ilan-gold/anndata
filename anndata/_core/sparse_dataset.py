@@ -274,16 +274,19 @@ class BaseCompressedSparseDataset(ABC):
 
     @property
     def row_subset_idx(self):
+        """cached row subset indexer"""
         if isinstance(self._row_subset_idx, np.ndarray):
             return self._row_subset_idx.flatten()  # why????
         return self._row_subset_idx
 
     @property
-    def has_no_subset_idx(self):
+    def has_no_subset_idx(self) -> bool:
+        """whether or not a subset indexer is on the object"""
         return self.has_no_col_subset_idx and self.has_no_row_subset_idx
 
     @property
-    def has_no_col_subset_idx(self):
+    def has_no_col_subset_idx(self) -> bool:
+        """whether or not a column subset indexer is on the object"""
         if isinstance(self.col_subset_idx, slice):
             if self.col_subset_idx == slice(
                 None, None, None
@@ -292,7 +295,8 @@ class BaseCompressedSparseDataset(ABC):
         return False
 
     @property
-    def has_no_row_subset_idx(self):
+    def has_no_row_subset_idx(self) -> bool:
+        """whether or not a row subset indexer is on the object"""
         if isinstance(self.row_subset_idx, slice):
             if self.row_subset_idx == slice(
                 None, None, None
@@ -310,6 +314,7 @@ class BaseCompressedSparseDataset(ABC):
 
     @property
     def col_subset_idx(self):
+        """cached column subset indexer"""
         if isinstance(self._col_subset_idx, np.ndarray):
             return self._col_subset_idx.flatten()
         return self._col_subset_idx
@@ -336,6 +341,11 @@ class BaseCompressedSparseDataset(ABC):
         return self.group.name
 
     def get_backing_shape(self) -> Tuple[int, int]:
+        """Generates the shape of the underlying data store i.e., with no indexers.
+
+        Returns:
+            Tuple[int, int]: shape
+        """
         shape = _read_attr(self.group.attrs, "shape", None)
         if shape is None:
             # TODO warn
@@ -344,6 +354,11 @@ class BaseCompressedSparseDataset(ABC):
 
     @property
     def shape(self) -> Tuple[int, int]:
+        """Generates the true shape of the object i.e., the shape of the `to_memory` operation, including indexers.
+
+        Returns:
+            Tuple[int, int]: shape
+        """
         shape = self.get_backing_shape()
         if self.has_no_subset_idx:
             return tuple(shape)
@@ -464,6 +479,11 @@ class BaseCompressedSparseDataset(ABC):
         indices[orig_data_size:] = sparse_matrix.indices
 
     def to_backed(self) -> BackedSparseMatrix:
+        """Generates a `BackedSparseMatrix` whose data arrays are zarr/hdf5 arrays.
+
+        Returns:
+            BackedSparseMatrix: backed data object
+        """
         format_class = get_backed_class(self.format_str)
         mtx = format_class(self.get_backing_shape(), dtype=self.dtype)
         mtx.data = self.group["data"]
@@ -472,6 +492,12 @@ class BaseCompressedSparseDataset(ABC):
         return mtx
 
     def to_memory(self) -> ss.spmatrix:
+        """Applies indexers to the `BackedSparseMatrix` to return data.
+
+        Returns:
+            ss.spmatrix: data matrix
+        """
+
         # Could not get row idx with csc and vice versa working without reading into memory but shouldn't matter
         if (self.format_str == "csr" and self.has_no_row_subset_idx) or (
             self.format_str == "csc" and self.has_no_col_subset_idx
